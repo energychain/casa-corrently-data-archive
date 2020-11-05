@@ -1,0 +1,22 @@
+{
+  "name": "casa-corrently-data-archive",
+  "version": "1.0.0",
+  "description": "Archive Management for Casa Corrently Energycostmanagement",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/energychain/casa-corrently-data-archive.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/energychain/casa-corrently-data-archive/issues"
+  },
+  "homepage": "https://github.com/energychain/casa-corrently-data-archive#readme",
+  "dependencies": {
+    "sqlite3": "^5.0.0"
+  }
+}

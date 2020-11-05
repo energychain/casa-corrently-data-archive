@@ -75,7 +75,11 @@ module.exports = function(config) {
 
                     let min_time = new Date().getTime() - row.mintime;
                     min_time += 86400000;
-                    let result = await main.meterLib(msg,config,memStorage);
+                    let msg2 = {
+                      payload: {},
+                      topic: 'statistics'
+                    };
+                    let result = await main.meterLib(msg2,config,memStorage,null,min_time);
                     await ccda.publish(result,config,memStorage);
                     resolve();
                   } else {

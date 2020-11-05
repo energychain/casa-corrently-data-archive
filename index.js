@@ -9,6 +9,8 @@ module.exports = function(config) {
      console.log('Archive Service started');
   }
 
+  const ccda = this;
+
   return {
     statics:async function() {
         if(_init == null) await _init(config);
@@ -65,7 +67,7 @@ module.exports = function(config) {
             }
 
             db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
-            const ccda = this;
+
 
             db.each("SELECT min(time) as mintime from 'archive_"+msg.uuid+"'",async function(err, row) {
                   if(row.mintime > new Date().getTime()-(365*86400000)) {
@@ -80,7 +82,7 @@ module.exports = function(config) {
                       topic: 'statistics'
                     };
                     let result = await main.meterLib(msg2,config,memStorage,null,min_time);
-                    await ccda.publish(result,config,memStorage);
+                    await ccda(config).publish(result,config,memStorage);
                     resolve();
                   } else {
                     resolve();

@@ -70,6 +70,9 @@ module.exports = function(config) {
             db.each("SELECT min(time) as mintime from 'archive_"+msg.uuid+"'",async function(err, row) {
                   if(row.mintime > new Date().getTime()-(365*86400000)) {
                     console.log('Adding Archive for ',msg.uuid);
+                    const CasaCorrently = require(process.cwd()+"/node_modules/casa-corrently/app.js");
+                    const main = await CasaCorrently();
+
                     let min_time = new Date().getTime() - row.mintime;
                     min_time += 86400000;
                     let result = await main.meterLib(msg,config,memStorage);

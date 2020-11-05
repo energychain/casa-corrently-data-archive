@@ -24,7 +24,8 @@ module.exports = function(config) {
             });
         });
     },
-    publish: async function(msg,alias) {
+    publish: async function(msg,config,memStorage) {
+      return new Promise(async (resolve,reject)=>{
         if(db == null) await _init(config);
         db.serialize(function() {
             db.run("CREATE TABLE IF NOT EXISTS 'archive_"+msg.uuid+"' (time INTEGER PRIMARY KEY,last24h_price REAL,last7d_price REAL,last30d_price REAL,last90d_price REAL,last180d_price REAL,last365d_price REAL)");
@@ -64,7 +65,23 @@ module.exports = function(config) {
             }
 
             db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
+            const ccda = this;
+
+            db.each("SELECT min(time) as mintime from 'archive_"+msg.uuid+"'",async function(err, row) {
+                  if(row.mintime > new Date().getTime()-(365*86400000)) {
+                    console.log('Adding Archive for ',msg.uuid);
+                    let min_time = new Date().getTime() - row.mintime;
+                    min_time += 86400000;
+                    let result = await main.meterLib(msg,config,memStorage);
+                    await ccda.publish(result,config,memStorage);
+                    resolve();
+                  } else {
+                    resolve();
+                  }
+            });;
+
         });
+      });
     }
   }
 }

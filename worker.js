@@ -15,7 +15,11 @@
     return new Promise(async function(resolve,rejext) {
         db.each("SELECT COUNT(TIME) as cnt, avg(time) as time,avg(last24h_price) as last24h_price, avg(last7d_price) as last7d_price, avg(last30d_price) as last30d_price, avg(last90d_price) as last90d_price, avg(last180d_price) as last180d_price, avg(last365d_price) as last365d_price FROM 'archive_"+config.uuid+"' where time<="+ts+" and TIME>"+(ts-retention),
           async function(err, row) {
+            if(err) {
+              console.log('_retentionRun',err);
+            }
             if((row!==null) && (row.cnt)) {
+              console.log('.');
                   db.serialize(function() {
                   db.run("DELETE FROM 'archive_"+config.uuid+"' where time<="+ts+" and TIME>"+(ts-retention));
                   let cols = [];

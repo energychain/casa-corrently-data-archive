@@ -62,11 +62,20 @@ module.exports = function(config) {
 
                   let min_time = new Date().getTime() - row.mintime;
                   min_time += 86400000;
+                  const memStorage2 = {
+                    memstorage:{},
+                    get:function(key) {
+                      return this.memstorage[key];
+                    },
+                    set:function(key,value) {
+                      this.memstorage[key] = value;
+                    }
+                  };
                   let msg2 = {
                     payload: {},
                     topic: 'statistics'
                   };
-                  let result = await main.meterLib(msg2,config,memStorage,null,min_time);
+                  let result = await main.meterLib(msg2,config,memStorage2,null,min_time);
                   await publish(result,config,memStorage);
                   resolve();
                 } else {

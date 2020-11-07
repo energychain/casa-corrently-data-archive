@@ -82,9 +82,9 @@ module.exports = function(config) {
               cols.push('last365d_price');
               values.push(msg.stats.last365d.energyPrice_kwh);
           }
-
-          db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
-
+          try {
+            db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
+          } catch(e) {}
 
           if(dirtyInstances.length > 0) {
             setTimeout(function() {

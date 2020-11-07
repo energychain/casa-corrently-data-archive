@@ -70,7 +70,12 @@
                 payload: {},
                 topic: 'statistics'
               };
-              let msg = await main.meterLib(msg2,config,memStorage2,null,Math.round(ts - (retention/2)));
+              let msg = null;
+              try {
+               msg = await main.meterLib(msg2,config,memStorage2,null,Math.round(ts - (retention/2)));
+             } catch(e) {
+
+             }
               // Hier Notfallabschaltung via ts=0 einleiten wenn benötigt
               let cols = [];
               let values = [];

@@ -5,7 +5,7 @@ module.exports = function(config) {
   const fs = require('fs');
 
   let db = null;
-  let worker = null;
+  let worker2 = null;
   let configs = {};
   let dirtyInstances = [];
 
@@ -21,12 +21,13 @@ module.exports = function(config) {
     if(!await fileExists(workerFile)) workerFile = __dirname + '/./worker.js';
     if(!await fileExists(workerFile)) workerFile = './worker.js';
 
-    if((dirtyInstances.length >0 )&&(worker==null)) {
+    if(dirtyInstances.length >0 ) {
       let uuid = dirtyInstances.pop();
       let config = configs[uuid];
-      worker = new Worker(workerFile,{workerData:config});
+      console.log('Spawning Worker');
+      const worker = new Worker(workerFile,{workerData:config});
       worker.on('message', function(_data) {
-
+        console.log('Worker Message',_data);
       });
       worker.on('error', function(e) {
         console.log('Error in Worker',e);

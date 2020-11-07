@@ -1,6 +1,13 @@
 (async () => {
+  console.log('_preinit Archive Worker');
   const { workerData, parentPort } = require('worker_threads');
   const config = workerData;
+  parentPort.postMessage({ 'launching': config.uuid });
+  try {
+  const fs = require("fs");
+
+  fs.writeFileSync(process.cwd()+"/ccda-w.lck",new Date().getTime());
+
   const sqlite3 = require("sqlite3");
   const CasaCorrently = require(process.cwd()+"/node_modules/casa-corrently/app.js");
   const main = await CasaCorrently();
@@ -13,7 +20,7 @@
 
   const _retentionRun = function(ts,retention) {
     return new Promise(async function(resolve,rejext) {
-        db.each("SELECT COUNT(TIME) as cnt, avg(time) as time,avg(last24h_price) as last24h_price, avg(last7d_price) as last7d_price, avg(last30d_price) as last30d_price, avg(last90d_price) as last90d_price, avg(last180d_price) as last180d_price, avg(last365d_price) as last365d_price FROM 'archive_"+config.uuid+"' where time<="+ts+" and TIME>"+(ts-retention),
+        db.each("SELECT COUNT(time) as cnt, avg(time) as time,avg(last24h_price) as last24h_price, avg(last7d_price) as last7d_price, avg(last30d_price) as last30d_price, avg(last90d_price) as last90d_price, avg(last180d_price) as last180d_price, avg(last365d_price) as last365d_price FROM 'archive_"+config.uuid+"' where time<="+ts+" and TIME>"+(ts-retention),
           async function(err, row) {
             if(err) {
               console.log('_retentionRun',err);
@@ -49,6 +56,7 @@
                   resolve();
                 });
             } else {
+              console.log('+');
               const memStorage2 = {
                 memstorage:{},
                 get:function(key) {
@@ -68,48 +76,52 @@
               let values = [];
               cols.push("time");
               values.push(msg.time);
+              if((msg == null) || (typeof msg.stats == 'undefined')) {
+                ts = 0;
+                resolve();
+              } else {
+                if(typeof msg.stats.last24h !== 'undefined') {
+                    cols.push('last24h_price');
+                    values.push(msg.stats.last24h.energyPrice_kwh);
+                }
 
-              if(typeof msg.stats.last24h !== 'undefined') {
-                  cols.push('last24h_price');
-                  values.push(msg.stats.last24h.energyPrice_kwh);
-              }
+                if(typeof msg.stats.last7d !== 'undefined') {
+                    cols.push('last7d_price');
+                    values.push(msg.stats.last7d.energyPrice_kwh);
+                }
 
-              if(typeof msg.stats.last7d !== 'undefined') {
-                  cols.push('last7d_price');
-                  values.push(msg.stats.last7d.energyPrice_kwh);
-              }
+                if(typeof msg.stats.last30d !== 'undefined') {
+                    cols.push('last30d_price');
+                    values.push(msg.stats.last30d.energyPrice_kwh);
+                }
 
-              if(typeof msg.stats.last30d !== 'undefined') {
-                  cols.push('last30d_price');
-                  values.push(msg.stats.last30d.energyPrice_kwh);
-              }
+                if(typeof msg.stats.last90d !== 'undefined') {
+                    cols.push('last90d_price');
+                    values.push(msg.stats.last90d.energyPrice_kwh);
+                }
 
-              if(typeof msg.stats.last90d !== 'undefined') {
-                  cols.push('last90d_price');
-                  values.push(msg.stats.last90d.energyPrice_kwh);
-              }
+                if(typeof msg.stats.last180d !== 'undefined') {
+                    cols.push('last180d_price');
+                    values.push(msg.stats.last180d.energyPrice_kwh);
+                }
 
-              if(typeof msg.stats.last180d !== 'undefined') {
-                  cols.push('last180d_price');
-                  values.push(msg.stats.last180d.energyPrice_kwh);
+                if(typeof msg.stats.last365d !== 'undefined') {
+                    cols.push('last365d_price');
+                    values.push(msg.stats.last365d.energyPrice_kwh);
+                }
+                db.serialize(function() {
+                  // db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
+                  setTimeout(function() {
+                      resolve();
+                  },200);
+                });
               }
-
-              if(typeof msg.stats.last365d !== 'undefined') {
-                  cols.push('last365d_price');
-                  values.push(msg.stats.last365d.energyPrice_kwh);
-              }
-              db.serialize(function() {
-                db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
-                setTimeout(function() {
-                    resolve();
-                },200);
-              });
             }
           }
         );
       });
   }
-
+  console.log('Cleaner start ',config.uuid);
   await _init();
   // Mit gegebener Config (eines Zählers) können wir hier ungestört arbeiten und müssen nur am Ende einen Exit machen.
   let ts = new Date().getTime();
@@ -133,35 +145,10 @@
   }
 
   parentPort.postMessage({ 'processed': config.uuid });
+  console.log('Cleaner finished ',config.uuid);
   return;
-});
-/*
-db.each("SELECT min(time) as mintime from 'archive_"+msg.uuid+"'",async function(err, row) {
-      if(row.mintime > new Date().getTime()-(365*86400000)) {
-        console.log('Adding Archive for ',msg.uuid);
-        const CasaCorrently = require(process.cwd()+"/node_modules/casa-corrently/app.js");
-        const main = await CasaCorrently();
-
-        let min_time = new Date().getTime() - row.mintime;
-        min_time += 86400000;
-        const memStorage2 = {
-          memstorage:{},
-          get:function(key) {
-            return this.memstorage[key];
-          },
-          set:function(key,value) {
-            this.memstorage[key] = value;
-          }
-        };
-        let msg2 = {
-          payload: {},
-          topic: 'statistics'
-        };
-        let result = await main.meterLib(msg2,config,memStorage2,null,min_time);
-        await publish(result,config,memStorage);
-        resolve();
-      } else {
-        resolve();
-      }
-});;
-*/
+  } catch(e) {
+    console.log(e);
+    parentPort.postMessage({ 'captured': e });
+  }
+})();

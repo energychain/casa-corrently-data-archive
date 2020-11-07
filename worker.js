@@ -51,8 +51,11 @@
 
                   cols.push('last365d_price');
                   values.push(row.last365d_price);
-
+                  try {
                   db.run("INSERT into 'archive_"+config.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
+                } catch(e) {
+
+                }
                   resolve();
                 });
             } else {
@@ -115,7 +118,11 @@
                     values.push(msg.stats.last365d.energyPrice_kwh);
                 }
                 db.serialize(function() {
-                  // db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
+                  try {
+                  db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
+                } catch(e) {
+
+                }
                   setTimeout(function() {
                       resolve();
                   },200);

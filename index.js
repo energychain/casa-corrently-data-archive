@@ -5,7 +5,7 @@ module.exports = function(config) {
   const fs = require('fs');
 
   let db = null;
-  let worker2 = null;
+  let worker2 = false;
   let configs = {};
   let dirtyInstances = [];
 
@@ -22,6 +22,7 @@ module.exports = function(config) {
     if(!await fileExists(workerFile)) workerFile = './worker.js';
 
     if(dirtyInstances.length >0 ) {
+      worker2 = true;
       let uuid = dirtyInstances.pop();
       let config = configs[uuid];
       console.log('Spawning Worker');
@@ -31,9 +32,11 @@ module.exports = function(config) {
       });
       worker.on('error', function(e) {
         console.log('Error in Worker',e);
+        _spawnCleanerWorker();
       });
       worker.on('exit', (code) => {
         console.log('Cleaner finished with Code',code);
+        _spawnCleanerWorker();
       });
     } else return;
   }
@@ -45,7 +48,13 @@ module.exports = function(config) {
       if(typeof configs[msg.uuid] == 'undefined') {
         configs[msg.uuid] = config;
         dirtyInstances.push(msg.uuid);
-      }
+        if(dirtyInstances.length > 0) {
+          setTimeout(function() {
+            _spawnCleanerWorker();
+          },500);
+        }
+        resolve();
+      } else {
       db.serialize(function() {
           db.run("CREATE TABLE IF NOT EXISTS 'archive_"+msg.uuid+"' (time INTEGER PRIMARY KEY,last24h_price REAL,last7d_price REAL,last30d_price REAL,last90d_price REAL,last180d_price REAL,last365d_price REAL)");
           let cols = [];
@@ -85,16 +94,10 @@ module.exports = function(config) {
           try {
             db.run("INSERT into 'archive_"+msg.uuid+"' ("+cols.concat()+")  VALUES ("+values.concat()+")");
           } catch(e) {}
-
-          if(dirtyInstances.length > 0) {
-            setTimeout(function() {
-              _spawnCleanerWorker();
-            },500);
-          }
-
           resolve();
+          });
+        }
 
-      });
     });
   }
   return {
@@ -103,13 +106,21 @@ module.exports = function(config) {
     },
     history:async function(uuid) {
         return new Promise(async (resolve,reject)=>{
+          if(!worker2) {
             if(db == null) await _init(config);
-            db.serialize(function() {
+            if(db !== null) {
+              db.serialize(function() {
               let history = [];
               db.all("SELECT * FROM 'archive_"+uuid+"' ORDER BY time desc", function(err, rows) {
                     resolve(rows);
                 });
             });
+          } else {
+            resolve({});
+          }
+        } else {
+            resolve({});
+        }
         });
     },
     publish: publish

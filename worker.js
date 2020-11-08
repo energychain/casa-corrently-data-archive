@@ -1,20 +1,23 @@
 (async () => {
-  console.log('_preinit Archive Worker');
   const { workerData, parentPort } = require('worker_threads');
   const config = workerData;
   parentPort.postMessage({ 'launching': config.uuid });
+  let db = null;
   try {
-  const fs = require("fs");
-
-  fs.writeFileSync(process.cwd()+"/ccda-w.lck",new Date().getTime());
 
   const sqlite3 = require("sqlite3");
   const CasaCorrently = require(process.cwd()+"/node_modules/casa-corrently/app.js");
   const main = await CasaCorrently();
 
   const _init = async function() {
+    return new Promise(async function(resolve,rejext) {
      db = new sqlite3.Database('ccda.sqlite');
-     console.log('Archive Worker started',config.uuid);
+     db.serialize(function() {
+       db.run("CREATE TABLE IF NOT EXISTS 'archive_"+config.uuid+"' (time INTEGER PRIMARY KEY,last24h_price REAL,last7d_price REAL,last30d_price REAL,last90d_price REAL,last180d_price REAL,last365d_price REAL)");
+       console.log('Archive Worker started',config.uuid);
+       resolve();
+     });
+   });
   }
 
 
@@ -26,7 +29,6 @@
               console.log('_retentionRun',err);
             }
             if((row!==null) && (row.cnt)) {
-              console.log('.');
                   db.serialize(function() {
                   db.run("DELETE FROM 'archive_"+config.uuid+"' where time<="+ts+" and TIME>"+(ts-retention));
                   let cols = [];
@@ -59,7 +61,6 @@
                   resolve();
                 });
             } else {
-              console.log('+');
               const memStorage2 = {
                 memstorage:{},
                 get:function(key) {
@@ -75,16 +76,18 @@
               };
               let msg = null;
               try {
-               msg = await main.meterLib(msg2,config,memStorage2,null,Math.round(ts - (retention/2)));
+               let time = new Date().getTime() - Math.round(ts - (retention/2));
+               msg = await main.meterLib(msg2,config,memStorage2,null,time);
              } catch(e) {
 
              }
               // Hier Notfallabschaltung via ts=0 einleiten wenn benötigt
               let cols = [];
               let values = [];
+
               cols.push("time");
               values.push(msg.time);
-              if((msg == null) || (typeof msg.stats == 'undefined')) {
+              if(((msg == null) || (typeof msg.stats == 'undefined')) && (typeof msg.time !== 'undefined')) {
                 ts = 0;
                 resolve();
               } else {
@@ -143,24 +146,26 @@
     ts -= retention;
     await _retentionRun(ts,retention);
   }
-
+ console.log('Cleaner 24h finished ',config.uuid);
   for(let i=0;(i<30)&&(ts > 0);i++) {
     let retention = 3600000;
     ts -= retention;
     await _retentionRun(ts,retention);
   }
-
+  console.log('Cleaner 30d finished ',config.uuid);
   for(let i=0;(i<365)&&(ts > 0);i++) {
     let retention = 86400000;
     ts -= retention;
     await _retentionRun(ts,retention);
   }
-
+  console.log('Cleaner 365d finished ',config.uuid);
   parentPort.postMessage({ 'processed': config.uuid });
   console.log('Cleaner finished ',config.uuid);
+  db.close();
   return;
   } catch(e) {
     console.log(e);
+    db.close();
     parentPort.postMessage({ 'captured': e });
   }
 })();

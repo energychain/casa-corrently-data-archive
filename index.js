@@ -24,26 +24,31 @@ module.exports = function(config) {
 
     if((dirtyInstances.length >0 )&&(!worker2)) {
       worker2 = true;
-      let uuid = dirtyInstances.pop();
+      const uuid = dirtyInstances.pop();
       let config = configs[uuid];
-      console.log('Spawning Worker',uuid);
-      const worker = new Worker(workerFile,{workerData:config});
-      worker.on('message', function(_data) {
-        if(typeof _data.history !== 'undefined') {
-          console.log('Received Worker History',_data.uuid,_data.history.length);
-          memHistory[_data.uuid] = _data.history;
-        }
-      });
-      worker.on('error', function(e) {
-        console.log('Error in Worker',e);
+      console.log('Pre Spawning Worker',uuid);
+      if(typeof memHistory[uuid] == 'undefined') {
+            console.log('Spawning Worker',uuid);
+            const worker = new Worker(workerFile,{workerData:config});
+            worker.on('message', function(_data) {
+              if(typeof _data.history !== 'undefined') {
+                console.log('Received Worker History',_data.uuid,_data.history.length);
+                memHistory[_data.uuid] = _data.history;
+              }
+            });
+            worker.on('error', function(e) {
+              console.log('Error in Worker',e);
+              worker2 = false;
+              // _spawnCleanerWorker();
+            });
+            worker.on('exit', (code) => {
+              console.log('Cleaner finished with Code',code);
+              worker2 = false;
+              // _spawnCleanerWorker();
+            });
+      } else {
         worker2 = false;
-        _spawnCleanerWorker();
-      });
-      worker.on('exit', (code) => {
-        console.log('Cleaner finished with Code',code);
-        worker2 = false;
-        _spawnCleanerWorker();
-      });
+      }
     } else return;
   }
   const ccda = this;
@@ -56,7 +61,7 @@ module.exports = function(config) {
         dirtyInstances.push(msg.uuid);
         setTimeout(function() {
           _spawnCleanerWorker();
-        },500);
+        },5000);
         resolve();
       } else {
         resolve();

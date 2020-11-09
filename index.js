@@ -26,7 +26,7 @@ module.exports = function(config) {
       worker2 = true;
       let uuid = dirtyInstances.pop();
       let config = configs[uuid];
-      console.log('Spawning Worker');
+      console.log('Spawning Worker',uuid);
       const worker = new Worker(workerFile,{workerData:config});
       worker.on('message', function(_data) {
         if(typeof _data.history !== 'undefined') {
@@ -51,7 +51,7 @@ module.exports = function(config) {
   const publish = async function(msg,config,memStorage) {
     return new Promise(async (resolve,reject)=>{
       if(db == null) await _init(config);
-      if(typeof configs[msg.uuid] == 'undefined') {
+      if((typeof msg.uuid !== 'undefined') && (msg.uuid !== null) && (typeof configs[msg.uuid] == 'undefined')) {
         configs[msg.uuid] = config;
         dirtyInstances.push(msg.uuid);
         setTimeout(function() {

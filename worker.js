@@ -94,7 +94,7 @@
               let cols = [];
               let values = [];
 
-              if(((msg == null) || (typeof msg.stats == 'undefined')) && (typeof msg.time !== 'undefined')) {
+              if((msg == null) || (typeof msg.stats == 'undefined') && (typeof msg.time == 'undefined')) {
                 ts = 0;
                 resolve();
               } else {

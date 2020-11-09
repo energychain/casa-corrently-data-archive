@@ -1,6 +1,6 @@
 {
   "name": "casa-corrently-data-archive",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "Archive Management for Casa Corrently Energycostmanagement",
   "main": "index.js",
   "scripts": {

@@ -94,12 +94,12 @@
               let cols = [];
               let values = [];
 
-              cols.push("time");
-              values.push(msg.time);
               if(((msg == null) || (typeof msg.stats == 'undefined')) && (typeof msg.time !== 'undefined')) {
                 ts = 0;
                 resolve();
               } else {
+                cols.push("time");
+                values.push(msg.time);
                 if(typeof msg.stats.last24h !== 'undefined') {
                     cols.push('last24h_price');
                     values.push(msg.stats.last24h.energyPrice_kwh);

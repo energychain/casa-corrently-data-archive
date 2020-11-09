@@ -20,9 +20,18 @@
    });
   }
 
+  const parentPost = function() {
+    return new Promise(async function(resolve,rejext) {
+      db.all("SELECT * FROM 'archive_"+uuid+"' ORDER BY time desc", function(err, rows) {
+            parentPort.postMessage({ 'uuid': config.uuid, 'history':rows });
+            resolve();
+      });
+    });
+  }
 
   const _retentionRun = function(ts,retention) {
     return new Promise(async function(resolve,rejext) {
+
         db.each("SELECT COUNT(time) as cnt, avg(time) as time,avg(last24h_price) as last24h_price, avg(last7d_price) as last7d_price, avg(last30d_price) as last30d_price, avg(last90d_price) as last90d_price, avg(last180d_price) as last180d_price, avg(last365d_price) as last365d_price FROM 'archive_"+config.uuid+"' where time<="+ts+" and TIME>"+(ts-retention),
           async function(err, row) {
             if(err) {
@@ -136,6 +145,7 @@
         );
       });
   }
+
   console.log('Cleaner start ',config.uuid);
   await _init();
   // Mit gegebener Config (eines Zählers) können wir hier ungestört arbeiten und müssen nur am Ende einen Exit machen.
@@ -146,23 +156,24 @@
     ts -= retention;
     await _retentionRun(ts,retention);
   }
+  await parentPost();
  console.log('Cleaner 24h finished ',config.uuid);
   for(let i=0;(i<30)&&(ts > 0);i++) {
     let retention = 3600000;
     ts -= retention;
     await _retentionRun(ts,retention);
+    await parentPost();
   }
   console.log('Cleaner 30d finished ',config.uuid);
   for(let i=0;(i<365)&&(ts > 0);i++) {
     let retention = 86400000;
     ts -= retention;
     await _retentionRun(ts,retention);
+    await parentPost();
   }
   console.log('Cleaner 365d finished ',config.uuid);
 
-  db.all("SELECT * FROM 'archive_"+uuid+"' ORDER BY time desc", function(err, rows) {
-        parentPort.postMessage({ 'processed': config.uuid, 'history':rows });
-  });
+
   console.log('Cleaner finished ',config.uuid);
   db.close();
   return;

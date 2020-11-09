@@ -22,7 +22,7 @@
 
   const parentPost = function() {
     return new Promise(async function(resolve,rejext) {
-      db.all("SELECT * FROM 'archive_"+uuid+"' ORDER BY time desc", function(err, rows) {
+      db.all("SELECT * FROM 'archive_"+ config.uuid+"' ORDER BY time desc", function(err, rows) {
             parentPort.postMessage({ 'uuid': config.uuid, 'history':rows });
             resolve();
       });
@@ -43,7 +43,7 @@
                   let cols = [];
                   let values = [];
                   cols.push("time");
-                  values.push(row.time);
+                  values.push(Math.round(row.time));
 
                   cols.push('last24h_price');
                   values.push(row.last24h_price);
@@ -150,13 +150,14 @@
   await _init();
   // Mit gegebener Config (eines Zählers) können wir hier ungestört arbeiten und müssen nur am Ende einen Exit machen.
   let ts = new Date().getTime();
-
+  console.log('Clean 24h',config.uuid);
   for(let i=0;(i<96)&&(ts > 0);i++) {
     let retention = 900000;
     ts -= retention;
     await _retentionRun(ts,retention);
+    await parentPost();
   }
-  await parentPost();
+
  console.log('Cleaner 24h finished ',config.uuid);
   for(let i=0;(i<30)&&(ts > 0);i++) {
     let retention = 3600000;

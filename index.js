@@ -29,8 +29,8 @@ module.exports = function(config) {
       console.log('Spawning Worker');
       const worker = new Worker(workerFile,{workerData:config});
       worker.on('message', function(_data) {
-        console.log('Worker Message',_data);
         if(typeof _data.history !== 'undefined') {
+          console.log('Received Worker History',_data.uuid,_data.history.length);
           memHistory[_data.uuid] = _data.history;
         }
       });

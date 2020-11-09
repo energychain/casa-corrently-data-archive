@@ -159,7 +159,10 @@
     await _retentionRun(ts,retention);
   }
   console.log('Cleaner 365d finished ',config.uuid);
-  parentPort.postMessage({ 'processed': config.uuid });
+
+  db.all("SELECT * FROM 'archive_"+uuid+"' ORDER BY time desc", function(err, rows) {
+        parentPort.postMessage({ 'processed': config.uuid, 'history':rows });
+  });
   console.log('Cleaner finished ',config.uuid);
   db.close();
   return;

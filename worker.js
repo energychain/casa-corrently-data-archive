@@ -23,7 +23,16 @@
   const parentPost = function() {
     return new Promise(async function(resolve,rejext) {
       db.all("SELECT * FROM 'archive_"+ config.uuid+"' ORDER BY time desc", function(err, rows) {
-            parentPort.postMessage({ 'uuid': config.uuid, 'history':rows });
+        let levels = 0;
+        let j=0;
+        for(let i=0;((i<960) && (i<rows.length-1));i++) {
+          levels += Math.abs(rows[i].stats.last24h - rows[i+1].stats.last24h);
+          j++;
+        }
+        if(j>0) {
+          levels = levels/j;
+        }
+            parentPort.postMessage({ 'uuid': config.uuid, 'history':rows,level:levels });
             resolve();
       });
     });

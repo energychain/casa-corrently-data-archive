@@ -14,7 +14,7 @@
      db = new sqlite3.Database('ccda.sqlite');
      db.serialize(function() {
        db.run("CREATE TABLE IF NOT EXISTS 'archive_"+config.uuid+"' (time INTEGER PRIMARY KEY,last24h_price REAL,last7d_price REAL,last30d_price REAL,last90d_price REAL,last180d_price REAL,last365d_price REAL)");
-       console.log('Archive Worker started',config.uuid);
+       console.log('archive-worker:init',config.uuid);
        resolve();
      });
    });
@@ -46,7 +46,7 @@
         db.each("SELECT COUNT(time) as cnt, avg(time) as time,avg(last24h_price) as last24h_price, avg(last7d_price) as last7d_price, avg(last30d_price) as last30d_price, avg(last90d_price) as last90d_price, avg(last180d_price) as last180d_price, avg(last365d_price) as last365d_price FROM 'archive_"+config.uuid+"' where time<="+ts+" and TIME>"+(ts-retention),
           async function(err, row) {
             if(err) {
-              console.log('_retentionRun',err);
+              console.log('archive-worker:_retentionRun',err);
             }
             if((row!==null) && (row.cnt)) {
                   db.serialize(function() {
@@ -157,11 +157,11 @@
       });
   }
 
-  console.log('Cleaner start ',config.uuid);
+  console.log('Carchive-worker:Cleaner',config.uuid);
   await _init();
   // Mit gegebener Config (eines Zählers) können wir hier ungestört arbeiten und müssen nur am Ende einen Exit machen.
   let ts = new Date().getTime();
-  console.log('Clean 24h',config.uuid);
+  console.log('archive-worker:Clean 24h',config.uuid);
   for(let i=0;(i<96)&&(ts > 0);i++) {
     let retention = 900000;
     ts -= retention;
@@ -169,28 +169,28 @@
     await parentPost();
   }
 
- console.log('Cleaner 24h finished ',config.uuid);
+ console.log('archive-worker:Cleaner 24h finished ',config.uuid);
   for(let i=0;(i<30)&&(ts > 0);i++) {
     let retention = 3600000;
     ts -= retention;
     await _retentionRun(ts,retention);
     await parentPost();
   }
-  console.log('Cleaner 30d finished ',config.uuid);
+  console.log('archive-worker:Cleaner 30d finished ',config.uuid);
   for(let i=0;(i<365)&&(ts > 0);i++) {
     let retention = 86400000;
     ts -= retention;
     await _retentionRun(ts,retention);
     await parentPost();
   }
-  console.log('Cleaner 365d finished ',config.uuid);
+  console.log('archive-worker:Cleaner 365d finished ',config.uuid);
 
 
-  console.log('Cleaner finished ',config.uuid);
+  console.log('archive-worker:Cleaner finished ',config.uuid);
   db.close();
   return;
   } catch(e) {
-    console.log(e);
+    console.log('archive-worker:',e);
     db.close();
     parentPort.postMessage({ 'captured': e });
   }

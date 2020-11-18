@@ -26,8 +26,10 @@
         let levels = 0;
         let j=0;
         for(let i=0;((i<960) && (i<rows.length-1));i++) {
-          levels += Math.abs(rows[i].stats.last24h - rows[i+1].stats.last24h);
-          j++;
+          if(typeof rows[i].stats !== 'undefined') {
+            levels += Math.abs(rows[i].stats.last24h - rows[i+1].stats.last24h);
+            j++;
+          }
         }
         if(j>0) {
           levels = levels/j;

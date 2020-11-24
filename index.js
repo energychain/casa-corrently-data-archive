@@ -38,12 +38,12 @@ module.exports = function(config) {
             worker.on('error', function(e) {
               console.log('data-archive:Error in Worker',e);
               worker2 = false;
-              // _spawnCleanerWorker();
+              _spawnCleanerWorker();
             });
             worker.on('exit', (code) => {
               console.log('data-archive:Cleaner finished with Code',code);
               worker2 = false;
-              // _spawnCleanerWorker();
+               _spawnCleanerWorker();
             });
       } else {
         worker2 = false;
